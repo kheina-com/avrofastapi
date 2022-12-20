@@ -75,6 +75,7 @@ class AvroJsonResponse(Response) :
 
 	# items are written to the cache in the form of type: serializer
 	# this only occurs with response models, error models are cached elsewhere
+	# TODO: remove
 	__writer_cache__ = CalcDict(AvroSerializer)
 
 	def __init__(self: 'AvroJsonResponse', serializable_body: dict = None, model: BaseModel = None, *args: Tuple[Any], serializer: AvroSerializer = None, handshake: HandshakeResponse = None, error: bool = False, **kwargs: Dict[str, Any]) :
@@ -492,7 +493,6 @@ class AvroRouter(APIRouter) :
 
 		else :
 			protocol = AvroProtocol(
-				namespace=name,
 				protocol=route.path,
 				messages={ },
 			)
@@ -532,7 +532,7 @@ class AvroRouter(APIRouter) :
 			errors=enames,
 		)
 
-		protocol_json: str = protocol.json()
+		protocol_json: str = protocol.json(exclude_none=True)
 		self._server_protocol_cache[route.path] = protocol_json, md5(protocol_json.encode()).digest(), AvroSerializer(errors)
 
 
