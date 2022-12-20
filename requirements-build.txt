@@ -1,0 +1,10 @@
+wheel~=0.36.2
+twine~=3.4.1
+pytest~=6.2.1
+pytest-asyncio~=0.14.0
+pytest-mock~=3.4.0
+isort~=5.8.0
+pytest-aiohttp~=0.3.0
+pytest-cov~=3.0.0
+pytest-env~=0.6.2
+httpx~=0.23.1
