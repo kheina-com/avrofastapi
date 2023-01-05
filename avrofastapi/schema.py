@@ -289,7 +289,7 @@ class AvroSchemaGenerator :
 				self.refs.add(schema['name'])
 			return schema
 
-		for cls in model.__mro__ :
+		for cls in getattr(model, '__mro__', []) :
 			if cls in self._conversions_ :
 				if isinstance(self._conversions_[cls], Callable) :
 					schema: AvroSchema = self._conversions_[cls](self, model)
