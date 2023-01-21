@@ -1,15 +1,14 @@
-from kh_common.logging import LogHandler; LogHandler.logging_available = False
 import json
 from hashlib import md5
 from typing import Union
 
 import pytest
 from fastapi.testclient import TestClient
-from kh_common.models import Error, ValidationError
 from pydantic import BaseModel, conint
 
 from avrofastapi import avrofastapi
 from avrofastapi.handshake import AvroMessage, AvroProtocol, CallRequest, CallResponse, HandshakeMatch, HandshakeRequest, HandshakeResponse
+from avrofastapi.models import Error, ValidationError
 from avrofastapi.schema import convert_schema
 from avrofastapi.serialization import AvroDeserializer, AvroSerializer, avro_frame, read_avro_frames
 

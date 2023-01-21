@@ -5,13 +5,11 @@ from typing import Callable, Dict, Iterable, List, Optional, Type, Union
 
 from aiohttp import ClientResponseError, ClientTimeout
 from aiohttp import request as async_request
-from kh_common.base64 import b64encode
-from kh_common.config.repo import name
-from kh_common.hashing import Hashable
-from kh_common.models import Error, ValidationError
 from pydantic import BaseModel
 
 from avrofastapi.handshake import AvroMessage, AvroProtocol, CallRequest, CallResponse, HandshakeMatch, HandshakeRequest, HandshakeResponse
+from avrofastapi.models import Error, ValidationError
+from avrofastapi.repo import name
 from avrofastapi.schema import convert_schema, get_name
 from avrofastapi.serialization import AvroDeserializer, AvroSerializer, avro_frame, read_avro_frames
 
@@ -30,7 +28,7 @@ class Retry(Exception) :
 	pass
 
 
-class Gateway(Hashable) :
+class Gateway :
 
 	def __init__(
 		self: 'Gateway',

@@ -37,7 +37,7 @@ __built_in_types__ = { 'null', 'boolean', 'int', 'long', 'float', 'double', 'byt
 class AvroMessage(BaseModel) :
 	"""
 	each 'dict' in this definition refers to a parsed avro schema. request is the 'fields' of a schema
-	these can be obtained through the kh_common.avro.schema.convert_schema(Type[BaseModel]) function
+	these can be obtained through the avrofastapi.schema.convert_schema(Type[BaseModel]) function
 	NOTE: these are never avro-encoded. only json-stringified.
 	"""
 	doc: Optional[str]

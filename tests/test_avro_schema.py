@@ -1,16 +1,14 @@
-from kh_common.logging import LogHandler; LogHandler.logging_available = False
-from datetime import date, time
+from datetime import date, datetime, time
 from decimal import Decimal
 from enum import Enum
 from typing import Dict, List, Optional, Type, Union
 
 import pytest
 from avro.errors import AvroException
-from kh_common.datetime import datetime
-from kh_common.models import Error, ValidationError
 from pydantic import BaseModel, conbytes, condecimal
 from pytest import raises
 
+from avrofastapi.models import Error, ValidationError
 from avrofastapi.schema import AvroFloat, AvroInt, convert_schema
 
 

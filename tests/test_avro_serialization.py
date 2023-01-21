@@ -1,12 +1,10 @@
-from kh_common.logging import LogHandler; LogHandler.logging_available = False
-from datetime import date, time
+from datetime import date, datetime, time
 from decimal import Decimal
 from enum import Enum
 from typing import Dict, List, Optional, Type, Union
 
 import pytest
 from avro.errors import AvroException, AvroTypeException
-from kh_common.datetime import datetime
 from pydantic import BaseModel, conbytes, condecimal
 from pytest import raises
 

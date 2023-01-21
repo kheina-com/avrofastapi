@@ -22,8 +22,6 @@ from fastapi.responses import Response
 from fastapi.routing import APIRoute, APIRouter, run_endpoint_function, serialize_response
 from fastapi.types import DecoratedCallable
 from fastapi.utils import generate_unique_id
-from kh_common.config.repo import name
-from kh_common.models import Error, ValidationError, ValidationErrorDetail
 from pydantic import BaseModel
 from pydantic.error_wrappers import ErrorWrapper
 from pydantic.fields import ModelField, Undefined
@@ -34,6 +32,8 @@ from starlette.routing import BaseRoute
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 from avrofastapi.handshake import MD5, AvroMessage, AvroProtocol, CallRequest, CallResponse, HandshakeMatch, HandshakeRequest, HandshakeResponse
+from avrofastapi.models import Error, ValidationError, ValidationErrorDetail
+from avrofastapi.repo import name
 from avrofastapi.schema import AvroSchema, convert_schema
 from avrofastapi.serialization import AvroDeserializer, AvroSerializer, avro_frame, read_avro_frames
 
@@ -64,7 +64,7 @@ call_request_deserializer: AvroDeserializer = AvroDeserializer(CallRequest)
 handshake_serializer: AvroSerializer = AvroSerializer(HandshakeResponse)
 call_serializer: AvroSerializer = AvroSerializer(CallResponse)
 
-logger: Logger = getLogger('avro.routing')
+logger: Logger = getLogger('avrofastapi.routing')
 
 
 class AvroDecodeError(Exception) :
