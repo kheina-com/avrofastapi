@@ -19,7 +19,7 @@ from avro.schema import ArraySchema, EnumSchema, FixedSchema, MapSchema, RecordS
 from avro.schema import parse as parse_avro_schema
 from pydantic import BaseModel, parse_obj_as
 
-from AvroFastAPI.schema import convert_schema
+from avrofastapi.schema import convert_schema
 
 
 def _validate_enum(self, datum: Union[Enum, str]) :

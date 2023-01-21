@@ -6,7 +6,7 @@ from email.message import Message as EmailMessage
 from enum import Enum
 from hashlib import md5
 from logging import Logger, getLogger
-from typing import Any, Callable, Dict, Iterator, List, Optional, Sequence, Set, Tuple, Type, Union
+from typing import Any, Callable, Dict, Hashable, Iterator, List, Optional, Sequence, Set, Tuple, Type, Union
 from uuid import UUID, uuid4
 from warnings import warn
 
@@ -22,7 +22,6 @@ from fastapi.responses import Response
 from fastapi.routing import APIRoute, APIRouter, run_endpoint_function, serialize_response
 from fastapi.types import DecoratedCallable
 from fastapi.utils import generate_unique_id
-from kh_common.caching import CalcDict
 from kh_common.config.repo import name
 from kh_common.models import Error, ValidationError, ValidationErrorDetail
 from pydantic import BaseModel
@@ -34,9 +33,24 @@ from starlette.responses import JSONResponse, Response
 from starlette.routing import BaseRoute
 from starlette.types import ASGIApp, Receive, Scope, Send
 
-from AvroFastAPI.handshake import MD5, AvroMessage, AvroProtocol, CallRequest, CallResponse, HandshakeMatch, HandshakeRequest, HandshakeResponse
-from AvroFastAPI.schema import AvroSchema, convert_schema
-from AvroFastAPI.serialization import AvroDeserializer, AvroSerializer, avro_frame, read_avro_frames
+from avrofastapi.handshake import MD5, AvroMessage, AvroProtocol, CallRequest, CallResponse, HandshakeMatch, HandshakeRequest, HandshakeResponse
+from avrofastapi.schema import AvroSchema, convert_schema
+from avrofastapi.serialization import AvroDeserializer, AvroSerializer, avro_frame, read_avro_frames
+
+
+class CalcDict(dict) :
+
+	def __init__(self, default: Callable[[Hashable], Any]) -> None :
+		self.default: Callable = default
+
+
+	def setdefault(self, default: Callable[[Hashable], Any]) -> None :
+		self.default = default
+
+
+	def __missing__(self, key: Hashable) -> Any :
+		self[key] = self.default(key)
+		return self[key]
 
 
 # number of client protocols to cache per endpoint

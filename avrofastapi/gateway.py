@@ -11,9 +11,9 @@ from kh_common.hashing import Hashable
 from kh_common.models import Error, ValidationError
 from pydantic import BaseModel
 
-from AvroFastAPI.handshake import AvroMessage, AvroProtocol, CallRequest, CallResponse, HandshakeMatch, HandshakeRequest, HandshakeResponse
-from AvroFastAPI.schema import convert_schema, get_name
-from AvroFastAPI.serialization import AvroDeserializer, AvroSerializer, avro_frame, read_avro_frames
+from avrofastapi.handshake import AvroMessage, AvroProtocol, CallRequest, CallResponse, HandshakeMatch, HandshakeRequest, HandshakeResponse
+from avrofastapi.schema import convert_schema, get_name
+from avrofastapi.serialization import AvroDeserializer, AvroSerializer, avro_frame, read_avro_frames
 
 
 handshake_deserializer: AvroDeserializer = AvroDeserializer(HandshakeResponse)
