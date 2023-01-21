@@ -6,7 +6,7 @@ import pytest
 from fastapi.testclient import TestClient
 from pydantic import BaseModel, conint
 
-from avrofastapi import avrofastapi
+from avrofastapi import AvroFastAPI
 from avrofastapi.handshake import AvroMessage, AvroProtocol, CallRequest, CallResponse, HandshakeMatch, HandshakeRequest, HandshakeResponse
 from avrofastapi.models import Error, ValidationError
 from avrofastapi.schema import convert_schema
@@ -65,7 +65,7 @@ class TestAvroServer :
 	def test_AvroRoute_GetNoHeaders_ReturnsJson(self) :
 
 		# arrange
-		app = avrofastapi()
+		app = AvroFastAPI()
 
 		@app.post(endpoint, response_model=ResponseModel)
 		async def test_func() :
@@ -93,7 +93,7 @@ class TestAvroServer :
 	)
 	def test_AvroRoute_AllAvroHeadersInvalidHandshake_ReturnsAvroHandshake(self, payload: bytes) :
 		# arrange
-		app = avrofastapi()
+		app = AvroFastAPI()
 
 		@app.post(endpoint, response_model=ResponseModel)
 		async def test_func() :
@@ -157,7 +157,7 @@ class TestAvroServer :
 			clientProtocol=protocol,
 		)
 
-		app = avrofastapi()
+		app = AvroFastAPI()
 
 		@app.post(endpoint, response_model=ResponseModel)
 		async def test_func() :
@@ -221,7 +221,7 @@ class TestAvroServer :
 			clientProtocol=protocol,
 		)
 
-		app = avrofastapi()
+		app = AvroFastAPI()
 
 		@app.post(endpoint, response_model=ResponseModel)
 		async def test_func() :
@@ -277,7 +277,7 @@ class TestAvroServer :
 			clientProtocol=protocol,
 		)
 
-		app = avrofastapi()
+		app = AvroFastAPI()
 
 		@app.post(endpoint, status_code=204)
 		async def test_func() :
@@ -336,7 +336,7 @@ class TestAvroServer :
 			clientProtocol=protocol,
 		)
 
-		app = avrofastapi()
+		app = AvroFastAPI()
 
 		@app.post(endpoint, status_code=204)
 		async def test_func() :
@@ -393,7 +393,7 @@ class TestAvroServer :
 			clientProtocol=protocol,
 		)
 
-		app = avrofastapi()
+		app = AvroFastAPI()
 
 		class TestModel(BaseModel) :
 			A: str

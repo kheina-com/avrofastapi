@@ -20,10 +20,10 @@ from fastapi.applications import routing  # isort:skip
 __version__: str = '0.0.2'
 
 
-class avrofastapi(FastAPI) :
+class AvroFastAPI(FastAPI) :
 
 	def __init__(
-		self: 'avrofastapi',
+		self: 'AvroFastAPI',
 		*,
 		debug: bool = False,
 		routes: Optional[List[BaseRoute]] = None,
