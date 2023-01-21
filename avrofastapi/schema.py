@@ -25,8 +25,8 @@ class AvroFloat(float) :
 AvroSchema: Type = Union[str, Dict[str, Union['AvroSchema', int]], List['AvroSchema']]
 
 
-def convert_schema(model: Type[BaseModel], error: bool = False) -> AvroSchema :
-	generator: AvroSchemaGenerator = AvroSchemaGenerator(model, error)
+def convert_schema(model: Type[BaseModel], error: bool = False, conversions: Dict[type, Callable[[type], AvroSchema]] = { }) -> AvroSchema :
+	generator: AvroSchemaGenerator = AvroSchemaGenerator(model, error, conversions)
 	return generator.schema()
 
 
@@ -74,7 +74,12 @@ def _validate_avro_namespace(namespace: str, parent_namespace: str = None) :
 
 class AvroSchemaGenerator :
 
-	def __init__(self, model: Type[BaseModel], error: bool = False) -> None :
+	def __init__(self, model: Type[BaseModel], error: bool = False, conversions: Dict[type, Callable[[type], AvroSchema]] = { }) -> None :
+		"""
+		:param model: the pydantic model to generate a schema for
+		:param error: whether or not the model is an error
+		:param conversions: additional type conversion functions. it's a good idea to make sure the avro type is convertable to the python type through pydantic for encoding/decoding.
+		"""
 		self.model: Type[BaseModel] = model
 		self.name: str = get_name(model)
 		_validate_avro_name(self.name)
@@ -82,6 +87,10 @@ class AvroSchemaGenerator :
 		_validate_avro_namespace(self.namespace)
 		self.error: bool = error or self.name.lower().endswith('error')
 		self.refs: Optional[Set[str]] = None
+		self._conversions: Dict[type, Callable[[type], AvroSchema]] = {
+			**self._conversions_,
+			**conversions,
+		}
 
 
 	def schema(self: 'AvroSchemaGenerator') -> AvroSchema :
@@ -282,20 +291,20 @@ class AvroSchemaGenerator :
 
 		origin: Optional[Type] = getattr(model, '__origin__', None)
 
-		if origin in self._conversions_ :
+		if origin in self._conversions :
 			# none of these can be converted without funcs
-			schema: AvroSchema = self._conversions_[origin](self, model)
+			schema: AvroSchema = self._conversions[origin](self, model)
 			if isinstance(schema, dict) and 'name' in schema :
 				self.refs.add(schema['name'])
 			return schema
 
 		for cls in getattr(model, '__mro__', []) :
-			if cls in self._conversions_ :
-				if isinstance(self._conversions_[cls], Callable) :
-					schema: AvroSchema = self._conversions_[cls](self, model)
+			if cls in self._conversions :
+				if isinstance(self._conversions[cls], Callable) :
+					schema: AvroSchema = self._conversions[cls](self, model)
 					if 'name' in schema :
 						self.refs.add(schema['name'])
 					return schema
-				return self._conversions_[cls]
+				return self._conversions[cls]
 
 		raise NotImplementedError(f'{model} missing from conversion map.')
