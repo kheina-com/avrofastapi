@@ -437,7 +437,6 @@ class TestAvroServer :
 			protocol='idk',
 			messages={
 				'test_func__get': AvroMessage(
-					request=[],
 					response=TestModel.__name__,
 					types=list(map(convert_schema, [TestModel])),
 				),
@@ -469,6 +468,11 @@ class TestAvroServer :
 			content=format_request(handshake=handshake, message='test_func__get'),
 		)
 
+		json_response = client.get(
+			base_url + endpoint,
+			headers={ 'accept': 'application/json' },
+		)
+
 		# assert
 		frame = read_avro_frames(response._content)
 		assert 200 == response.status_code
@@ -482,3 +486,9 @@ class TestAvroServer :
 			B='2',
 			C=3.1,
 		)
+
+		assert json_response.json() == {
+			'A': 1,
+			'B': '2',
+			'C': 3.1,
+		}

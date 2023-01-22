@@ -36,23 +36,25 @@ if __name__ == '__main__' :
 
 ## CLIENT
 ```python
->>> from kh_common.avro.gateway import Gateway
->>> from kh_common.datetime import datetime
->>> from pydantic import BaseModel
->>> import requests
->>> import asyncio
->>> 
->>> class TestResponseModel(BaseModel) :
-... 	A: str 
-... 	B: int
-... 	C: datetime
-... 
->>> requests.get('http://localhost:5000/').json()
-{'A': 'ayy', 'B': 1337, 'C': '2022-12-02T17:00:05.256158+00:00'}
->>> gateway = Gateway('http://localhost:5000/', 'v1Example__get', TestResponseModel)
->>> asyncio.run(gateway())
-TestResponseModel(A='ayy', B=1337, C=datetime.datetime(2022, 12, 2, 17, 0, 5, 284505, tzinfo=<avro.timezones.UTCTzinfo object at 0x107dc9fd0>))
+from avrofastapi.gateway import Gateway
+from datetime import datetime
+from pydantic import BaseModel
+import requests
+import asyncio
+
+class TestResponseModel(BaseModel) :
+	A: str 
+	B: int
+	C: datetime
+
+requests.get('http://localhost:5000/').json()
+# returns: {'A': 'ayy', 'B': 1337, 'C': '2023-01-22T10:01:00.543317+00:00'}
+
+gateway = Gateway('http://localhost:5000/', 'v1Example__get', response_model=TestResponseModel)
+asyncio.run(gateway())
+# returns: TestResponseModel(A='ayy', B=1337, C=datetime.datetime(2023, 1, 22, 10, 2, 29, 641314, tzinfo=<avro.timezones.UTCTzinfo object at 0x7efbe9cdb580>))
 ```
+
 # Development
 Fork the parent repository at https://github.com/kheina-com/avrofastapi and edit like any other python project.  
 Tests are run with `pytest` in the command line and input sorting is run via `isort .`
