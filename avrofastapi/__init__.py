@@ -61,6 +61,7 @@ class AvroFastAPI(FastAPI) :
 		swagger_ui_parameters: Optional[Dict[str, Any]] = None,
 		generate_unique_id_function: Callable[[APIRoute], str] = Default(generate_unique_id),
 		router_class: Type[Router] = AvroRouter,
+		protocol_name: Optional[str] = None,
 		**extra: Any,
 	) -> None :
 		# do some python trickery to inject our custom router class into fastapi's init func

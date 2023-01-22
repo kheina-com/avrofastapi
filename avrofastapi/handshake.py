@@ -78,7 +78,7 @@ class AvroProtocol(BaseModel) :
 	"""
 	NOTE: these are never avro-encoded. only json-stringified.
 	"""
-	namespace: str
+	namespace: Optional[str]
 	protocol: str
 	messages: Dict[str, AvroMessage]
 

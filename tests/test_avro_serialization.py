@@ -1,4 +1,4 @@
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timezone
 from decimal import Decimal
 from enum import Enum
 from typing import Dict, List, Optional, Type, Union
@@ -59,12 +59,12 @@ class NestedModelUnionRecords(BaseModel) :
 @pytest.mark.parametrize(
 	'input_model', [
 		BasicModelBaseTypes(A='string', B=1, C=1.1, D=b'abc', E=True),
-		BasicModelAdvancedTypes(A=datetime.now(), B='abcde12345', C=Decimal('12.345'), D=BasicEnum.test2, E=date.today(), F=time(1, 2, 3, 4)),
+		BasicModelAdvancedTypes(A=datetime.now(timezone.utc), B='abcde12345', C=Decimal('12.345'), D=BasicEnum.test2, E=date.today(), F=time(1, 2, 3, 4)),
 		NestedModelBasicTypes(A=BasicModelBaseTypes(A='string', B=1, C=1.1, D=b'abc', E=True), B=2),
 		BasicModelTypingTypes(A=[1], B={ 'a': 2 }, C=None, D=3),
 		BasicModelTypingTypes(A=[1], B={ 'a': 2 }, C=None, D='3'),
 		BasicModelCustomTypes(A=123, B=34.5),
-		NestedModelUnionRecords(A=BasicModelAdvancedTypes(A=datetime.now(), B='abcde12345', C=Decimal('12.345'), D=BasicEnum.test2, E=date.today(), F=time(1, 2, 3, 4))),
+		NestedModelUnionRecords(A=BasicModelAdvancedTypes(A=datetime.now(timezone.utc), B='abcde12345', C=Decimal('12.345'), D=BasicEnum.test2, E=date.today(), F=time(1, 2, 3, 4))),
 	],
 )
 def test_serialize_ValidInput_ModelEncodedAndDecodedSuccessfully(input_model: BaseModel) :

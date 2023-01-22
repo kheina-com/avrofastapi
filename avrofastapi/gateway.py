@@ -1,5 +1,6 @@
 import json
 from asyncio import sleep
+from copy import copy
 from hashlib import md5
 from typing import Callable, Dict, Iterable, List, Optional, Type, Union
 
@@ -70,7 +71,6 @@ class Gateway :
 		protocol_types += error_models
 
 		self._client_protocol: AvroProtocol = AvroProtocol(
-			namespace=name,
 			protocol=self._message_name,
 			messages={
 				self._message_name: AvroMessage(
@@ -89,8 +89,14 @@ class Gateway :
 		self._handshake_status: Optional[HandshakeMatch] = None
 		self._perform_handshake: bool = True
 
+		self._hash = copy(self._client_hash)
+
 		if request_model :
 			self._serializer: AvroSerializer = AvroSerializer(request_model)
+
+
+	def __hash__(self) :
+		return self._hash
 
 
 	async def __call__(

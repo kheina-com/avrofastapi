@@ -8,7 +8,6 @@ from avro.errors import AvroException
 from pydantic import BaseModel, conbytes, condecimal
 from pytest import raises
 
-from avrofastapi.models import Error, ValidationError
 from avrofastapi.schema import AvroFloat, AvroInt, convert_schema
 
 
@@ -86,8 +85,6 @@ class BasicModelCustomTypes(BaseModel) :
 		(BasicModelTypingTypes, { 'namespace': 'BasicModelTypingTypes', 'name': 'BasicModelTypingTypes', 'type': 'record', 'fields': [{ 'name': 'A', 'type': { 'type': 'array', 'items': 'long' } }, { 'name': 'B', 'type': { 'type': 'map', 'values': 'long' } }, { 'name': 'C', 'type': ['null', 'long'] }, { 'name': 'D', 'type': ['long', 'string'] }] }),
 		(BasicModelCustomNamespace, { 'namespace': 'custom.namespace', 'name': 'BasicModelCustomNamespace', 'type': 'record', 'fields': [{ 'name': 'A', 'type': 'long' }] }),
 		(BasicModelCustomNestedNamespace, { 'namespace': 'custom', 'name': 'BasicModelCustomNestedNamespace', 'type': 'record', 'fields': [{ 'name': 'A', 'type': { 'namespace': 'custom.namespace', 'name': 'BasicModelCustomNamespace', 'type': 'record', 'fields': [{ 'name': 'A', 'type': 'long' }] } }] }),
-		(Error, { 'namespace': 'Error', 'name': 'Error', 'type': 'error', 'fields': [{ 'name': 'refid', 'type': ['null', { 'type': 'fixed', 'name': 'RefId', 'size': 16 }] }, { 'name': 'status', 'type': 'long' }, { 'name': 'error', 'type': 'string' }] }),
-		(ValidationError, { 'namespace': 'ValidationError', 'name': 'ValidationError', 'type': 'error', 'fields': [{ 'name': 'detail', 'type': { 'items': { 'fields': [{ 'name': 'loc', 'type': { 'items': 'string', 'type': 'array' } }, { 'name': 'msg', 'type': 'string' }, { 'name': 'type', 'type': 'string' }], 'name': 'ValidationErrorDetail', 'type': 'record' }, 'type': 'array' } }] }),
 		(BasicModelDefaultValues, { 'namespace': 'BasicModelDefaultValues', 'name': 'BasicModelDefaultValues', 'type': 'record', 'fields': [{ 'name': 'A', 'type': 'string', 'default': '1' }, { 'name': 'B', 'type': 'long', 'default': 2 }, { 'name': 'C', 'type': 'double', 'default': 3.1 }, { 'name': 'D', 'type': 'bytes', 'default': b'abc' }, { 'name': 'E', 'type': 'boolean', 'default': True }] }),
 		(BasicModelCustomTypes, { 'namespace': 'BasicModelCustomTypes', 'name': 'BasicModelCustomTypes', 'type': 'record', 'fields': [{ 'name': 'A', 'type': 'int' }, { 'name': 'B', 'type': 'float' }] }),
 		# (BasicEnumUsesNames, { 'namespace': 'BasicEnumUsesNames', 'name': 'BasicEnumUsesNames', 'type': 'enum', 'symbols': ['test1', 'test2', 'test3'] }),
@@ -110,8 +107,6 @@ def test_ConvertSchema_ValidInputError_ModelConvertedSuccessfully(input_model: T
 		(BasicModelTypingTypes, { 'namespace': 'BasicModelTypingTypes', 'name': 'BasicModelTypingTypes', 'type': 'error', 'fields': [{ 'name': 'A', 'type': { 'type': 'array', 'items': 'long' } }, { 'name': 'B', 'type': { 'type': 'map', 'values': 'long' } }, { 'name': 'C', 'type': ['null', 'long'] }, { 'name': 'D', 'type': ['long', 'string'] }] }),
 		(BasicModelCustomNamespace, { 'namespace': 'custom.namespace', 'name': 'BasicModelCustomNamespace', 'type': 'error', 'fields': [{ 'name': 'A', 'type': 'long' }] }),
 		(BasicModelCustomNestedNamespace, { 'namespace': 'custom', 'name': 'BasicModelCustomNestedNamespace', 'type': 'error', 'fields': [{ 'name': 'A', 'type': { 'namespace': 'custom.namespace', 'name': 'BasicModelCustomNamespace', 'type': 'record', 'fields': [{ 'name': 'A', 'type': 'long' }] } }] }),
-		(Error, { 'namespace': 'Error', 'name': 'Error', 'type': 'error', 'fields': [{ 'name': 'refid', 'type': ['null', { 'type': 'fixed', 'name': 'RefId', 'size': 16 }] }, { 'name': 'status', 'type': 'long' }, { 'name': 'error', 'type': 'string' }] }),
-		(ValidationError, { 'namespace': 'ValidationError', 'name': 'ValidationError', 'type': 'error', 'fields': [{ 'name': 'detail', 'type': { 'items': { 'fields': [{ 'name': 'loc', 'type': { 'items': 'string', 'type': 'array' } }, { 'name': 'msg', 'type': 'string' }, { 'name': 'type', 'type': 'string' }], 'name': 'ValidationErrorDetail', 'type': 'record' }, 'type': 'array' } }] }),
 		(BasicModelDefaultValues, { 'namespace': 'BasicModelDefaultValues', 'name': 'BasicModelDefaultValues', 'type': 'error', 'fields': [{ 'name': 'A', 'type': 'string', 'default': '1' }, { 'name': 'B', 'type': 'long', 'default': 2 }, { 'name': 'C', 'type': 'double', 'default': 3.1 }, { 'name': 'D', 'type': 'bytes', 'default': b'abc' }, { 'name': 'E', 'type': 'boolean', 'default': True }] }),
 		(BasicModelCustomTypes, { 'namespace': 'BasicModelCustomTypes', 'name': 'BasicModelCustomTypes', 'type': 'error', 'fields': [{ 'name': 'A', 'type': 'int' }, { 'name': 'B', 'type': 'float' }] }),
 		# (BasicModelUseEnumNames, { 'namespace': 'BasicModelUseEnumNames', 'name': 'BasicModelUseEnumNames', 'type': 'error', 'fields': [{ 'name': 'A', 'type': { 'name': 'BasicEnum', 'type': 'enum', 'symbols': ['test1', 'test2', 'test3'] } }], }),
@@ -194,7 +189,8 @@ from avrofastapi.handshake import HandshakeRequest, HandshakeResponse
 	'input_model, expected', [
 		(HandshakeRequest, {
 			'type': 'record',
-			'name': 'HandshakeRequest', 'namespace':'org.apache.avro.ipc',
+			'name': 'HandshakeRequest',
+			'namespace': 'org.apache.avro.ipc',
 			'fields': [
 				{ 'name': 'clientHash', 'type': { 'type': 'fixed', 'name': 'MD5', 'size': 16 } },
 				{ 'name': 'clientProtocol', 'type': ['null', 'string'] },
@@ -204,12 +200,62 @@ from avrofastapi.handshake import HandshakeRequest, HandshakeResponse
 		}),
 		(HandshakeResponse, {
 			'type': 'record',
-			'name': 'HandshakeResponse', 'namespace': 'org.apache.avro.ipc',
+			'name': 'HandshakeResponse',
+			'namespace': 'org.apache.avro.ipc',
 			'fields': [
 				{ 'name': 'match', 'type': { 'type': 'enum', 'name': 'HandshakeMatch', 'symbols': ['BOTH', 'CLIENT', 'NONE'] } },
 				{ 'name': 'serverProtocol', 'type': ['null', 'string'] },
 				{ 'name': 'serverHash', 'type': ['null', { 'type': 'fixed', 'name': 'MD5', 'size': 16 }] },
 				{ 'name': 'meta', 'type': ['null', { 'type': 'map', 'values': 'bytes' }] }
+			]
+		}),
+	],
+)
+def test_ConvertSchema_HandshakeModels_HandshakeConvertedSuccessfully(input_model: Type[BaseModel], expected: dict) :
+
+	# act
+	schema: dict = convert_schema(input_model)
+
+	# assert
+	assert expected == schema
+
+
+# this is another special case, however, these schemas are used internally by avrofastapi
+from avrofastapi.models import Error, ValidationError
+
+
+@pytest.mark.parametrize(
+	'input_model, expected', [
+		(Error, {
+			'type': 'error',
+			'name': 'Error',
+			'namespace': 'Error',
+			'fields': [
+				{ 'name': 'refid', 'type': ['null', { 'type': 'fixed', 'name': 'RefId', 'size': 16 }] },
+				{ 'name': 'status', 'type': 'int' },
+				{ 'name': 'error', 'type': 'string' },
+			]
+		}),
+		(ValidationError, {
+			'type': 'error',
+			'name': 'ValidationError',
+			'namespace': 'ValidationError',
+			'fields': [
+				{
+					'name': 'detail',
+					'type': {
+						'type': 'array',
+						'items': {
+							'type': 'record',
+							'name': 'ValidationErrorDetail',
+							'fields': [
+								{ 'name': 'loc', 'type': { 'items': 'string', 'type': 'array' } },
+								{ 'name': 'msg', 'type': 'string' },
+								{ 'name': 'type', 'type': 'string' }
+							],
+						},
+					},
+				},
 			]
 		}),
 	],

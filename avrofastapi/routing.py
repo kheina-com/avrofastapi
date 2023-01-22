@@ -75,6 +75,7 @@ class AvroJsonResponse(Response) :
 
 	# items are written to the cache in the form of type: serializer
 	# this only occurs with response models, error models are cached elsewhere
+	# TODO: remove
 	__writer_cache__ = CalcDict(AvroSerializer)
 
 	def __init__(self: 'AvroJsonResponse', serializable_body: dict = None, model: BaseModel = None, *args: Tuple[Any], serializer: AvroSerializer = None, handshake: HandshakeResponse = None, error: bool = False, **kwargs: Dict[str, Any]) :
@@ -100,16 +101,9 @@ class AvroJsonResponse(Response) :
 				'avro-server-hash' in request.headers and
 				'avro-client-hash' in request.headers and
 				'avro-handshake' in request.headers and not
-				{ 'true': True, 'false': False }[request.headers['avro-handshake']]
+				request.headers['avro-handshake'] == 'true'
 			) :
-				if not self._model :
-					logger.debug('response: handshake.%s only', handshake.match.name)
-					self.body = (
-						avro_frame(handshake_serializer(handshake)) +
-						avro_frame()
-					)
-
-				else :
+				if self._model :
 					logger.debug('response: handshake.%s + model: %s', handshake.match.name, type(self._model).__name__)
 					self.body = (
 						avro_frame(handshake_serializer(handshake)) +
@@ -121,6 +115,13 @@ class AvroJsonResponse(Response) :
 								),
 							)
 						) +
+						avro_frame()
+					)
+
+				else :
+					logger.debug('response: handshake.%s only', handshake.match.name)
+					self.body = (
+						avro_frame(handshake_serializer(handshake)) +
 						avro_frame()
 					)
 
@@ -150,10 +151,11 @@ class AvroJsonResponse(Response) :
 		elif self._serializable_body :
 			self.body = json.dumps(self._serializable_body).encode()
 
-		else :
+		elif self._model :
 			self.body = self._model.json().encode()
 
-		self.headers['content-length'] = str(len(self.body))
+		if self.body :
+			self.headers['content-length'] = str(len(self.body))
 
 		await super().__call__(scope, receive, send)
 
@@ -321,7 +323,7 @@ class AvroRoute(APIRoute) :
 				server_protocol: str
 				protocol_hash: bytes
 				serializer: AvroSerializer
-				server_protocol, protocol_hash, serializer = request.scope['router']._server_protocol_cache[self.path]
+				server_protocol, protocol_hash, serializer = request.scope['router']._server_protocol
 				error: str = 'avro handshake failed, client protocol incompatible'
 
 				return AvroJsonResponse(
@@ -342,7 +344,7 @@ class AvroRoute(APIRoute) :
 				server_protocol: str
 				protocol_hash: bytes
 				serializer: AvroSerializer
-				server_protocol, protocol_hash, serializer = request.scope['router']._server_protocol_cache[self.path]
+				server_protocol, protocol_hash, serializer = request.scope['router']._server_protocol
 				error: str = 'There was an error parsing the body: ' + str(e)
 
 				return AvroJsonResponse(
@@ -370,7 +372,7 @@ class AvroRoute(APIRoute) :
 
 			if errors :
 				serializer: AvroSerializer
-				_, _, serializer = request.scope['router']._server_protocol_cache[self.path]
+				_, _, serializer = request.scope['router']._server_protocol
 				error = ValidationError(detail=[ValidationErrorDetail(**e) for e in errors[0].exc.errors()])
 				return AvroJsonResponse(
 					model=error,
@@ -462,8 +464,16 @@ class AvroRouter(APIRouter) :
 
 		# format { route.unique_id: route }
 		self._avro_routes: Dict[str, APIRoute] = { }
-		# format { route_path: (protocol json, hash, serializer) }
-		self._server_protocol_cache: Dict[str, Tuple[str, MD5, AvroSerializer]] = { }
+
+		protocol: str = AvroProtocol(
+			protocol=name,
+			namespace=name,
+			messages={ },
+		).json(exclude_none=True)
+
+		# format: (protocol json, hash, serializer)
+		# NOTE: these two errors are used automatically by this library and FastAPI, respectively
+		self._server_protocol: Tuple[str, MD5, AvroSerializer] = (protocol, md5(protocol.encode()).digest(), AvroSerializer(Union[Error, ValidationError]))
 
 		for route in self.routes :
 			self.add_avro_route(route)
@@ -486,26 +496,17 @@ class AvroRouter(APIRouter) :
 
 
 	def add_server_protocol(self: 'AvroRouter', route: APIRoute) -> None :
-		if route.path in self._server_protocol_cache :
-			p, _, _ = self._server_protocol_cache[route.path]
-			protocol: AvroProtocol = AvroProtocol.parse_raw(p)
+		# optimize: this function is extremely slow right now due to re-parsing and re-generating all schemas. it doesn't really matter too much because this is only run during server startup
+		p, _, serializer = self._server_protocol
+		protocol: AvroProtocol = AvroProtocol.parse_raw(p)
 
-		else :
-			protocol = AvroProtocol(
-				namespace=name,
-				protocol=route.path,
-				messages={ },
-			)
-
-		# NOTE: these two errors are used automatically by this library and FastAPI, respectively
-		# TODO: this handshake should be generated for all routes that share a url format
-		types: List[dict] = [convert_schema(Error, error=True), convert_schema(ValidationError, error=True)]
+		types: List[dict] = list(map(convert_schema, serializer._model.__args__))
 
 		# there needs to be a separte refs objects vs enames being a set is due to ordering and
 		# serialization/deserialization of a union being order-dependent
-		refs = { Error.__name__, ValidationError.__name__ }
-		enames = [Error.__name__, ValidationError.__name__]
-		errors = Union[Error, ValidationError]
+		enames = list(map(lambda t : t.__name__, serializer._model.__args__))
+		refs = set(enames)
+		errors = serializer._model
 
 		# print(dir(request.scope['router'].routes[-1]))
 		# print(request.scope['router'].routes[-1].__dict__)
@@ -532,83 +533,8 @@ class AvroRouter(APIRouter) :
 			errors=enames,
 		)
 
-		protocol_json: str = protocol.json()
-		self._server_protocol_cache[route.path] = protocol_json, md5(protocol_json.encode()).digest(), AvroSerializer(errors)
-
-
-	async def settle_avro_handshake(self: 'AvroRouter', request: Request) -> APIRoute :
-		body = await request.body()
-
-		if not body :
-			raise AvroDecodeError('no body was included with the avro request, a handshake must be provided with every request')
-
-		frame_gen: Iterator = read_avro_frames(body)
-		handshake_request: HandshakeRequest = None
-		handshake_body: bytes = b''
-
-		for frame in frame_gen :
-			handshake_body += frame
-
-			try :
-				handshake_request = handshake_deserializer(handshake_body)
-				del handshake_body
-				break
-
-			except TypeError :
-				pass
-
-		if not handshake_request :
-			raise AvroDecodeError('There was an error parsing the avro handshake.')
-
-		request_deserializers, response_compatibility = await self.check_schema_compatibility(handshake_request)
-		# print(request_deserializers, response_compatibility)
-
-		call_request: CallRequest = None
-		call_body: bytes = b''
-
-		for frame in frame_gen :
-			call_body += frame
-
-			try :
-				call_request = call_request_deserializer(call_body)
-				del call_body
-				break
-
-			except TypeError :
-				pass
-
-		if not call_request :
-			raise ValueError('There was an error parsing the avro request.')
-
-		if call_request.message not in self._avro_routes :
-			raise AvroDecodeError(f'{call_request.message} not found in valid messages ({", ".join(self._avro_routes.keys())})')
-
-		route: APIRoute = self._avro_routes[call_request.message]
-		server_protocol, protocol_hash, _ = self._server_protocol_cache[route.path]
-
-		if handshake_request.serverHash == protocol_hash and response_compatibility :
-			request.scope['avro_handshake'] = HandshakeResponse(
-				match=HandshakeMatch.both,
-			)
-
-		else :
-			request.scope['avro_handshake'] = HandshakeResponse(
-				match=HandshakeMatch.client,
-				serverHash=protocol_hash,
-				serverProtocol=server_protocol,
-			)
-
-		if call_request.message not in request_deserializers :
-			if route.body_field :
-				raise AvroDecodeError(f'call request message {call_request.message} was not found in client protocol')
-
-			else :
-				request.scope['avro_body'] = None
-
-		elif route.body_field : # optimize: is this check necessary?
-			request.scope['avro_body'] = request_deserializers[call_request.message](call_request.request)
-
-		return route
+		protocol_json: str = protocol.json(exclude_none=True)
+		self._server_protocol = protocol_json, md5(protocol_json.encode()).digest(), AvroSerializer(errors)
 
 
 	async def check_schema_compatibility(self: 'AvroRouter', handshake: HandshakeRequest) -> Tuple[Dict[str, AvroDeserializer], bool] :
@@ -716,6 +642,80 @@ class AvroRouter(APIRouter) :
 		return data
 
 
+	async def settle_avro_handshake(self: 'AvroRouter', request: Request) -> Optional[APIRoute] :
+		body = await request.body()
+
+		if not body :
+			raise AvroDecodeError('no body was included with the avro request, a handshake must be provided with every request')
+
+		frame_gen: Iterator = read_avro_frames(body)
+		handshake_request: HandshakeRequest = None
+		handshake_body: bytes = b''
+
+		for frame in frame_gen :
+			handshake_body += frame
+
+			try :
+				handshake_request = handshake_deserializer(handshake_body)
+				del handshake_body
+				break
+
+			except TypeError :
+				pass
+
+		if not handshake_request :
+			raise AvroDecodeError('There was an error parsing the avro handshake.')
+
+		request_deserializers, response_compatibility = await self.check_schema_compatibility(handshake_request)
+		server_protocol, protocol_hash, _ = self._server_protocol
+
+		if handshake_request.serverHash == protocol_hash and response_compatibility :
+			request.scope['avro_handshake'] = HandshakeResponse(
+				match=HandshakeMatch.both,
+			)
+
+		else :
+			request.scope['avro_handshake'] = HandshakeResponse(
+				match=HandshakeMatch.client,
+				serverHash=protocol_hash,
+				serverProtocol=server_protocol,
+			)
+
+		call_request: CallRequest = None
+		call_body: bytes = b''
+
+		for frame in frame_gen :
+			call_body += frame
+
+			try :
+				call_request = call_request_deserializer(call_body)
+				del call_body
+				break
+
+			except TypeError :
+				pass
+
+		if not call_request :
+			return None
+
+		if call_request.message not in self._avro_routes :
+			raise AvroDecodeError(f'{call_request.message} not found in valid messages ({", ".join(self._avro_routes.keys())})')
+
+		route: APIRoute = self._avro_routes[call_request.message]
+
+		if call_request.message not in request_deserializers :
+			if route.body_field :
+				raise AvroDecodeError(f'call request message {call_request.message} was not found in client protocol')
+
+			else :
+				request.scope['avro_body'] = None
+
+		elif route.body_field : # optimize: is this check necessary?
+			request.scope['avro_body'] = request_deserializers[call_request.message](call_request.request)
+
+		return route
+
+
 	async def __call__(self: 'AvroRouter', scope: Scope, receive: Receive, send: Send) -> None :
 		if 'avro/binary' == Headers(scope=scope).get('content-type') :
 			logger.debug('request path: %s', scope['path'])
@@ -729,7 +729,13 @@ class AvroRouter(APIRouter) :
 				return
 
 			try :
-				route: AvroRoute = await self.settle_avro_handshake(Request(scope, receive, send))
+				route: Optional[AvroRoute] = await self.settle_avro_handshake(Request(scope, receive, send))
+
+				if not route :
+					response: AvroJsonResponse = AvroJsonResponse(status_code=200)
+					await response(scope, receive, send)
+					return
+
 				await route.handle_avro(scope, receive, send)
 
 			except AvroDecodeError as e :
@@ -737,11 +743,11 @@ class AvroRouter(APIRouter) :
 				protocol_hash: bytes
 				serializer: AvroSerializer
 
-				server_protocol, protocol_hash, serializer = self._server_protocol_cache.get(scope['path'], (None, None, None))
-				respsonse: Response
+				server_protocol, protocol_hash, serializer = self._server_protocol
+				response: Response
 
 				if server_protocol :
-					respsonse = AvroJsonResponse(
+					response = AvroJsonResponse(
 						model=Error(
 							status=400,
 							error=str(e),
@@ -757,7 +763,7 @@ class AvroRouter(APIRouter) :
 					)
 
 				else :
-					respsonse = JSONResponse(
+					response = JSONResponse(
 						Error(
 							status=404,
 							error='avro handshake failed, there is no avro endpoint on this route',
@@ -765,7 +771,7 @@ class AvroRouter(APIRouter) :
 						status_code=404,
 					)
 
-				await respsonse(scope, receive, send)
+				await response(scope, receive, send)
 
 			except Exception :
 				server_protocol: str
@@ -773,7 +779,7 @@ class AvroRouter(APIRouter) :
 				serializer: AvroSerializer
 				refid: UUID = uuid4()
 
-				server_protocol, protocol_hash, serializer = self._server_protocol_cache.get(scope['path'], (None, None, None))
+				server_protocol, protocol_hash, serializer = self._server_protocol
 				respsonse: Response
 
 				logger.exception(f'Something went wrong while decoding the request body. path: {scope["path"]}, refid: {refid.hex}')
