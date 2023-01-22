@@ -119,8 +119,8 @@ class TestAvroServer :
 		server_protocol = json.loads(handshake.serverProtocol)
 		assert { Error.__name__, ValidationError.__name__ } == set(server_protocol['messages']['test_func__post'].pop('errors'))
 		assert server_protocol == {
-			'namespace': 'kh-common',
-			'protocol': '/',
+			'namespace': 'avrofastapi',
+			'protocol': 'avrofastapi',
 			'messages': {
 				'test_func__post': {
 					'doc': 'the openapi description should go here. ex: V1Endpoint',
@@ -183,8 +183,8 @@ class TestAvroServer :
 		server_protocol = json.loads(handshake.serverProtocol)
 		assert { Error.__name__, ValidationError.__name__ } == set(server_protocol['messages']['test_func__post'].pop('errors'))
 		assert server_protocol == {
-			'namespace': 'kh-common',
-			'protocol': '/',
+			'namespace': 'avrofastapi',
+			'protocol': 'avrofastapi',
 			'messages': {
 				'test_func__post': {
 					'doc': 'the openapi description should go here. ex: V1Endpoint',
@@ -302,8 +302,8 @@ class TestAvroServer :
 		server_protocol = json.loads(handshake.serverProtocol)
 		assert { Error.__name__, ValidationError.__name__ } == set(server_protocol['messages']['test_func__post'].pop('errors'))
 		assert server_protocol == {
-			'namespace': 'kh-common',
-			'protocol': '/',
+			'namespace': 'avrofastapi',
+			'protocol': 'avrofastapi',
 			'messages': {
 				'test_func__post': {
 					'doc': 'the openapi description should go here. ex: V1Endpoint',
