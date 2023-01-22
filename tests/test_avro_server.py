@@ -137,7 +137,7 @@ class TestAvroServer :
 		assert call_deserializer(next(frame)).error
 
 
-	def test_AvroRoute_AllAvroHeadersValidHandshakeNoBody_ReturnsHandshakeAndResponse(self) :
+	def test_AvroRoute_AllAvroHeadersValidHandshakeNoBody_ReturnsHandshakeNoResponse(self) :
 		# arrange
 		protocol = AvroProtocol(
 			namespace='idk',
@@ -198,10 +198,10 @@ class TestAvroServer :
 				},
 			},
 		}
-		assert ResponseModel(result=True) == model_deserializer(call_deserializer(next(frame)).response)
+		assert 0 == len(next(frame))
 
 
-	def test_AvroRoute_AllAvroHeadersValidHandshakeHandshakeCached_ReturnsHandshakeAndResponse(self) :
+	def test_AvroRoute_AllAvroHeadersValidHandshakeHandshakeCached_ReturnsHandshakeNoResponse(self) :
 		# arrange
 		protocol = AvroProtocol(
 			namespace='idk',
@@ -257,7 +257,7 @@ class TestAvroServer :
 		assert HandshakeMatch.both == handshake.match
 		assert None == handshake.serverHash
 		assert None == handshake.serverProtocol
-		assert ResponseModel(result=True) == model_deserializer(call_deserializer(next(frame)).response)
+		assert 0 == len(next(frame))
 
 
 	def test_AvroRoute_AllAvroHeadersNullResponse_ReturnsHandshakeAndResponse(self) :
