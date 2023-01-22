@@ -49,11 +49,13 @@ def format_request(handshake: HandshakeRequest = None, request: RequestModel = N
 	if handshake :
 		req += avro_frame(handshake_serializer(handshake))
 
-	if request and message :
-		req += avro_frame(call_serializer(CallRequest(
-			message=message,
-			request=model_serializer(request),
-		)))
+	if message :
+		call_request = CallRequest(message=message, request=b'')
+
+		if request :
+			call_request.request = model_serializer(request)
+
+		req += avro_frame(call_serializer(call_request))
 
 	return req
 
@@ -260,7 +262,7 @@ class TestAvroServer :
 		assert not next(frame)
 
 
-	def test_AvroRoute_AllAvroHeadersNullResponse_ReturnsHandshakeAndResponse(self) :
+	def test_AvroRoute_AllAvroHeadersNullResponse_ReturnsHandshakeNoResponse(self) :
 		# arrange
 		protocol = AvroProtocol(
 			namespace='idk',
@@ -319,7 +321,7 @@ class TestAvroServer :
 		assert not next(frame)
 
 
-	def test_AvroRoute_AllAvroHeadersCachedNullResponse_ReturnsHandshakeAndResponse(self) :
+	def test_AvroRoute_AllAvroHeadersCachedNullResponse_ReturnsHandshakeNoResponse(self) :
 		# arrange
 		protocol = AvroProtocol(
 			namespace='idk',
@@ -421,3 +423,72 @@ class TestAvroServer :
 		assert call.error
 		error = AvroDeserializer(Union[Error, ValidationError, str])(call.response)
 		assert ValidationError == type(error)
+
+
+	def test_AvroRoute_AllAvroHeadersGetRequest_ReturnsHandshakeAndResponse(self) :
+		# arrange
+		class TestModel(BaseModel) :
+			A: int
+			B: str
+			C: float
+
+		protocol = AvroProtocol(
+			namespace='idk',
+			protocol='idk',
+			messages={
+				'test_func__get': AvroMessage(
+					response=TestModel.__name__,
+					types=list(map(convert_schema, [TestModel])),
+				),
+			}
+		).json()
+
+		handshake = HandshakeRequest(
+			clientHash=md5(protocol.encode()).digest(),
+			serverHash=b'deadbeefdeadbeef',
+			clientProtocol=protocol,
+		)
+
+		app = AvroFastAPI()
+
+		@app.get(endpoint, response_model=TestModel)
+		async def test_func() :
+			return TestModel(
+				A=1,
+				B='2',
+				C=3.1,
+			)
+
+		client = TestClient(app, base_url=base_url)
+
+		# act
+		response = client.post(
+			base_url + endpoint,
+			headers={ 'accept': 'avro/binary', 'content-type': 'avro/binary' },
+			content=format_request(handshake=handshake, message='test_func__get'),
+		)
+
+		json_response = client.get(
+			base_url + endpoint,
+			headers={ 'accept': 'application/json' },
+		)
+
+		# assert
+		frame = read_avro_frames(response._content)
+		assert 200 == response.status_code
+		handshake: HandshakeResponse = handshake_deserializer(next(frame))
+		assert HandshakeMatch.client == handshake.match
+		call = call_deserializer(next(frame))
+		# assert call.error
+		response: TestModel = AvroDeserializer(TestModel)(call.response)
+		assert response == TestModel(
+			A=1,
+			B='2',
+			C=3.1,
+		)
+
+		assert json_response.json() == {
+			'A': 1,
+			'B': '2',
+			'C': 3.1,
+		}
