@@ -198,7 +198,7 @@ class TestAvroServer :
 				},
 			},
 		}
-		assert 0 == len(next(frame))
+		assert not next(frame)
 
 
 	def test_AvroRoute_AllAvroHeadersValidHandshakeHandshakeCached_ReturnsHandshakeNoResponse(self) :
@@ -257,7 +257,7 @@ class TestAvroServer :
 		assert HandshakeMatch.both == handshake.match
 		assert None == handshake.serverHash
 		assert None == handshake.serverProtocol
-		assert 0 == len(next(frame))
+		assert not next(frame)
 
 
 	def test_AvroRoute_AllAvroHeadersNullResponse_ReturnsHandshakeAndResponse(self) :

@@ -472,7 +472,7 @@ class AvroRouter(APIRouter) :
 		).json(exclude_none=True)
 
 		# format(protocol json, hash, serializer)
-		self._server_protocol: Tuple[str, MD5, AvroSerializer] = protocol, md5(protocol.encode()).digest(), AvroSerializer(Union[Error, ValidationError])
+		self._server_protocol: Tuple[str, MD5, AvroSerializer] = (protocol, md5(protocol.encode()).digest(), AvroSerializer(Union[Error, ValidationError]))
 
 		for route in self.routes :
 			self.add_avro_route(route)
