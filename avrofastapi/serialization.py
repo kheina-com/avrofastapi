@@ -254,7 +254,16 @@ _data_converter_map = {
 class AvroSerializer :
 
 	def __init__(self, model: Union[Schema, Type[BaseModel]]) :
-		schema: Schema = model if isinstance(model, Schema) else parse_avro_schema(dumps(convert_schema(model)))
+		self._model: Optional[Type[BaseModel]] = None
+		schema: Schema
+
+		if isinstance(model, Schema) :
+			schema = model
+
+		else :
+			self._model = model
+			schema = parse_avro_schema(dumps(convert_schema(model)))
+
 		self._writer: ABetterDatumWriter = ABetterDatumWriter(schema)
 
 

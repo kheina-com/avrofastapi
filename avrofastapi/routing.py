@@ -471,7 +471,8 @@ class AvroRouter(APIRouter) :
 			messages={ },
 		).json(exclude_none=True)
 
-		# format(protocol json, hash, serializer)
+		# format: (protocol json, hash, serializer)
+		# NOTE: these two errors are used automatically by this library and FastAPI, respectively
 		self._server_protocol: Tuple[str, MD5, AvroSerializer] = (protocol, md5(protocol.encode()).digest(), AvroSerializer(Union[Error, ValidationError]))
 
 		for route in self.routes :
@@ -495,18 +496,17 @@ class AvroRouter(APIRouter) :
 
 
 	def add_server_protocol(self: 'AvroRouter', route: APIRoute) -> None :
-		p, _, _ = self._server_protocol
+		# optimize: this function is extremely slow right now due to re-parsing and re-generating all schemas. it doesn't really matter too much because this is only run during server startup
+		p, _, serializer = self._server_protocol
 		protocol: AvroProtocol = AvroProtocol.parse_raw(p)
 
-		# NOTE: these two errors are used automatically by this library and FastAPI, respectively
-		# TODO: this handshake should be generated for all routes that share a url format
-		types: List[dict] = [convert_schema(Error, error=True), convert_schema(ValidationError, error=True)]
+		types: List[dict] = list(map(convert_schema, serializer._model.__args__))
 
 		# there needs to be a separte refs objects vs enames being a set is due to ordering and
 		# serialization/deserialization of a union being order-dependent
-		refs = { Error.__name__, ValidationError.__name__ }
-		enames = [Error.__name__, ValidationError.__name__]
-		errors = Union[Error, ValidationError]
+		enames = list(map(lambda t : t.__name__, serializer._model.__args__))
+		refs = set(enames)
+		errors = serializer._model
 
 		# print(dir(request.scope['router'].routes[-1]))
 		# print(request.scope['router'].routes[-1].__dict__)
