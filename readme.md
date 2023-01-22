@@ -1,5 +1,5 @@
-![AvroFastAPI Logo](logo.png)
 <p align="center">
+	<img src="logo.png" alt="AvroFastAPI Logo">
 	<a href="https://github.com/kheina-com/avrofastapi/actions?query=workflow%3Apython-package+event%3Apush+branch%3Amain">
 		<img src="https://github.com/kheina-com/avrofastapi/actions/workflows/python-package.yml/badge.svg?branch=main" alt="python-package.yml workflow">
 	</a>
