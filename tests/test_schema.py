@@ -21,9 +21,9 @@ class BasicModelBaseTypes(BaseModel) :
 
 class BasicEnum(Enum) :
 	__use_enum_names__: bool = False
-	test1: str = 'TEST1'
-	test2: str = 'TEST2'
-	test3: str = 'TEST3'
+	test1 = 'TEST1'
+	test2 = 'TEST2'
+	test3 = 'TEST3'
 
 
 class BasicModelAdvancedTypes(BaseModel) :
@@ -59,9 +59,9 @@ class BasicModelCustomNestedNamespace(BaseModel) :
 
 class BasicEnumUsesNames(Enum) :
 	__use_enum_names__: bool = True
-	test1: str = 'TEST1'
-	test2: str = 'TEST2'
-	test3: str = 'TEST3'
+	test1 = 'TEST1'
+	test2 = 'TEST2'
+	test3 = 'TEST3'
 
 
 class BasicModelDefaultValues(BaseModel) :
@@ -146,9 +146,9 @@ class BasicModelInvalidType6(BaseModel) :
 
 
 class BasicEnumInvalidType7(Enum) :
-	test1: str = 'TEST1'
-	test2: str = 'TEST2'
-	test3: str = 'TEST1'
+	test1 = 'TEST1'
+	test2 = 'TEST2'
+	test3 = 'TEST1'
 
 
 class NestedModelInvalidNamespace1(BaseModel) :

@@ -1,4 +1,5 @@
 import asyncio
+from contextlib import AsyncExitStack
 import json
 from asyncio import Lock
 from collections import OrderedDict
@@ -28,7 +29,7 @@ from starlette.datastructures import Headers
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.routing import BaseRoute
-from starlette.types import ASGIApp, Receive, Scope, Send
+from starlette.types import ASGIApp, Lifespan, Receive, Scope, Send
 
 from avrofastapi.handshake import MD5, AvroMessage, AvroProtocol, CallRequest, CallResponse, HandshakeMatch, HandshakeRequest, HandshakeResponse
 from avrofastapi.models import Error, ValidationError, ValidationErrorDetail
@@ -364,60 +365,62 @@ class AvroRoute(APIRoute) :
 					error=True,
 				)
 
-			solved_result = await solve_dependencies(
-				request=request,
-				dependant=dependant,
-				body=body,
-				dependency_overrides_provider=dependency_overrides_provider,
-			)
-			values, errors, background_tasks, sub_response, _ = solved_result
-			# print(values, errors, background_tasks, sub_response, actual_response_class, self.response_class)
-
-			if errors :
-				serializer: AvroSerializer
-				_, _, serializer = request.scope['router']._server_protocol
-				error = ValidationError(detail=[ValidationErrorDetail(**e) for e in errors[0].exc.errors()])
-				return AvroJsonResponse(
-					model=error,
-					serializer=serializer,
-					error=True,
+			async with AsyncExitStack() as async_exit_stack:
+				solved_result = await solve_dependencies(
+					request=request,
+					dependant=dependant,
+					body=body,
+					dependency_overrides_provider=dependency_overrides_provider,
+					async_exit_stack=async_exit_stack,
 				)
+				values, errors, background_tasks, sub_response, _ = solved_result
+				# print(values, errors, background_tasks, sub_response, actual_response_class, self.response_class)
 
-			else :
-				raw_response = await run_endpoint_function(
-					dependant=dependant, values=values, is_coroutine=is_coroutine
-				)
+				if errors :
+					serializer: AvroSerializer
+					_, _, serializer = request.scope['router']._server_protocol
+					error = ValidationError(detail=[ValidationErrorDetail(**e) for e in errors[0].exc.errors()])
+					return AvroJsonResponse(
+						model=error,
+						serializer=serializer,
+						error=True,
+					)
 
-				if isinstance(raw_response, Response) :
-					if raw_response.background is None :
-						raw_response.background = background_tasks
-					return raw_response
+				else :
+					raw_response = await run_endpoint_function(
+						dependant=dependant, values=values, is_coroutine=is_coroutine
+					)
 
-				response_data = await serialize_response(
-					field=response_field,
-					response_content=raw_response,
-					include=response_model_include,
-					exclude=response_model_exclude,
-					by_alias=response_model_by_alias,
-					exclude_unset=response_model_exclude_unset,
-					exclude_defaults=response_model_exclude_defaults,
-					exclude_none=response_model_exclude_none,
-					is_coroutine=is_coroutine,
-				)
-				response_args: Dict[str, Any] = { 'background': background_tasks }
+					if isinstance(raw_response, Response) :
+						if raw_response.background is None :
+							raw_response.background = background_tasks
+						return raw_response
 
-				# If status_code was set, use it, otherwise use the default from the
-				# response class, in the case of redirect it's 307
-				if status_code is not None :
-					response_args['status_code'] = status_code
+					response_data = await serialize_response(
+						field=response_field,
+						response_content=raw_response,
+						include=response_model_include,
+						exclude=response_model_exclude,
+						by_alias=response_model_by_alias,
+						exclude_unset=response_model_exclude_unset,
+						exclude_defaults=response_model_exclude_defaults,
+						exclude_none=response_model_exclude_none,
+						is_coroutine=is_coroutine,
+					)
+					response_args: Dict[str, Any] = { 'background': background_tasks }
 
-				response = actual_response_class(serializable_body=response_data, model=raw_response, **response_args)
-				response.headers.raw.extend(sub_response.headers.raw)
+					# If status_code was set, use it, otherwise use the default from the
+					# response class, in the case of redirect it's 307
+					if status_code is not None :
+						response_args['status_code'] = status_code
 
-				if sub_response.status_code :
-					response.status_code = sub_response.status_code
+					response = actual_response_class(serializable_body=response_data, model=raw_response, **response_args)
+					response.headers.raw.extend(sub_response.headers.raw)
 
-				return response
+					if sub_response.status_code :
+						response.status_code = sub_response.status_code
+
+					return response
 
 		return app
 
@@ -440,6 +443,7 @@ class AvroRouter(APIRouter) :
 		route_class: Type[APIRoute] = AvroRoute,
 		on_startup: Optional[Sequence[Callable[[], Any]]] = None,
 		on_shutdown: Optional[Sequence[Callable[[], Any]]] = None,
+		lifespan: Optional[Lifespan[Any]] = None,
 		deprecated: Optional[bool] = None,
 		include_in_schema: bool = True,
 		generate_unique_id_function: Callable[[APIRoute], str] = Default(
@@ -460,6 +464,7 @@ class AvroRouter(APIRouter) :
 			route_class=route_class,
 			on_startup=on_startup,
 			on_shutdown=on_shutdown,
+			lifespan=lifespan,
 			deprecated=deprecated,
 			include_in_schema=include_in_schema,
 			generate_unique_id_function=generate_unique_id_function,

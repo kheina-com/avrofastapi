@@ -1,25 +1,9 @@
-# credentials
-**/credentials.*
-**/credentials
-credentials
-
-# executables
-**/*.o
+# python virtual environment
+.venv
 
 # config files
 .vscode
 .DS_Store
-
-# database files
-**/*.db
-**/*.sql
-
-# images
-**/*.jpg
-**/*.png
-**/*.gif
-**/*.ico
-**/*.svg
 
 # python files
 **/__pycache__
@@ -33,9 +17,6 @@ server.py
 *.out
 !requirements.txt
 !requirements*.txt
-
-# back ups of files hosted remotely
-**/backups
 
 # experimental things
 ignore*

@@ -1,1 +1,15 @@
-/home/dani/Codebase/backend/pyproject.toml
+[tool.isort]
+line_length = 999
+lines_after_imports = 2
+
+[tool.ruff.format]
+exclude = ["*"] #
+indent-style = "tab"
+line-ending = "lf"
+
+[tool.ruff.lint]
+fixable = []
+
+[tool.ruff.lint.isort]
+force-single-line = true
+lines-after-imports = 2
