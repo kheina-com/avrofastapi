@@ -1,8 +1,8 @@
 import asyncio
-from contextlib import AsyncExitStack
 import json
 from asyncio import Lock
 from collections import OrderedDict
+from contextlib import AsyncExitStack
 from email.message import Message as EmailMessage
 from enum import Enum
 from hashlib import md5
