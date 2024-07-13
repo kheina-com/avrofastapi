@@ -1,10 +1,6 @@
-try :
-	from re import _pattern_type as Pattern
-	from re import compile as re_compile
-except ImportError :
-	from re import Pattern, compile as re_compile
-
 from os import listdir
+from re import Pattern
+from re import compile as re_compile
 
 from setuptools import find_packages, setup
 

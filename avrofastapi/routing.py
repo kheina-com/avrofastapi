@@ -16,7 +16,6 @@ from fastapi import params
 from fastapi.datastructures import Default, DefaultPlaceholder
 from fastapi.dependencies.models import Dependant
 from fastapi.dependencies.utils import solve_dependencies
-from fastapi.encoders import DictIntStrAny, SetIntStr
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import Response
 from fastapi.routing import APIRoute, APIRouter, run_endpoint_function, serialize_response
@@ -27,7 +26,7 @@ from pydantic.error_wrappers import ErrorWrapper
 from pydantic.fields import ModelField, Undefined
 from starlette.datastructures import Headers
 from starlette.requests import Request
-from starlette.responses import JSONResponse, Response
+from starlette.responses import JSONResponse
 from starlette.routing import BaseRoute
 from starlette.types import ASGIApp, Receive, Scope, Send
 
@@ -36,6 +35,10 @@ from avrofastapi.models import Error, ValidationError, ValidationErrorDetail
 from avrofastapi.repo import name
 from avrofastapi.schema import AvroSchema, convert_schema
 from avrofastapi.serialization import AvroDeserializer, AvroSerializer, avro_frame, read_avro_frames
+
+
+SetIntStr = Set[Union[int, str]]
+DictIntStrAny = Dict[Union[int, str], Any]
 
 
 class CalcDict(dict) :

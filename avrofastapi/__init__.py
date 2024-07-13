@@ -14,10 +14,10 @@ from avrofastapi.routing import AvroJsonResponse, AvroRouter
 
 
 # this needs to be imported last
-from fastapi.applications import routing  # isort:skip
+from fastapi.applications import routing  # type: ignore # isort:skip
 
 
-__version__: str = '0.0.4'
+__version__: str = '0.0.5'
 
 
 class AvroFastAPI(FastAPI) :
