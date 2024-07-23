@@ -1,9 +1,9 @@
 import datetime
 from decimal import Decimal
-from enum import Enum
+from enum import Enum, IntEnum
 from io import BytesIO
 from json import dumps
-from typing import Any, Callable, Dict, Generator, Literal, Mapping, Optional, Self, Sequence, Type, Union
+from typing import Any, Callable, Dict, Generator, Mapping, Optional, Self, Sequence, Type, Union
 from uuid import UUID
 from warnings import warn
 
@@ -48,11 +48,20 @@ class ABetterDatumWriter(DatumWriter) :
 	def write_enum(self, writers_schema: EnumSchema, datum: Union[Enum, str], encoder: BinaryEncoder) -> None :
 		"""
 		An enum is encoded by a int, representing the zero-based position of the symbol in the schema.
-		python Enums are converted to their value
+		python Enums are converted to their indexvalue
 		"""
 		datum: str = datum.value if isinstance(datum, Enum) else datum
 		index_of_datum: int = writers_schema.symbols.index(datum)
 		return encoder.write_int(index_of_datum)
+
+
+	def write_int_enum(self, _: EnumSchema, datum: Union[int, IntEnum], encoder: BinaryEncoder) -> None :
+		"""
+		An enum is encoded by a int, representing the zero-based position of the symbol in the schema.
+		python IntEnums are converted to their value
+		"""
+		datum: int = datum.value if isinstance(datum, Enum) else datum
+		return encoder.write_int(datum)
 
 
 	@staticmethod
@@ -190,7 +199,10 @@ class ABetterDatumWriter(DatumWriter) :
 		raise AvroTypeException(writers_schema, datum)
 
 
-	def _writer_type_enum_(self, writers_schema: EnumSchema, datum: Union[str, Enum], encoder: BinaryEncoder) -> None :
+	def _writer_type_enum_(self, writers_schema: EnumSchema, datum: Union[str, int, IntEnum, Enum], encoder: BinaryEncoder) -> None :
+		if isinstance(datum, (int, IntEnum)) :
+			return self.write_int_enum(writers_schema, datum, encoder)
+
 		if isinstance(datum, (str, Enum)) :
 			return self.write_enum(writers_schema, datum, encoder)
 

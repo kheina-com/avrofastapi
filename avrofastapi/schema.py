@@ -1,10 +1,10 @@
 from datetime import date, datetime, time
 from decimal import Decimal
-from enum import Enum
+from enum import Enum, IntEnum
 from re import Pattern
 from re import compile as re_compile
 from types import UnionType
-from typing import Any, Callable, Dict, List, Mapping, Optional, Self, Sequence, Set, Type, Union
+from typing import Any, Callable, Dict, ForwardRef, List, Mapping, Optional, Self, Sequence, Set, Type, Union
 from uuid import UUID
 
 from avro.errors import AvroException
@@ -18,6 +18,15 @@ _avro_name_format: Pattern = re_compile(r'^[A-Za-z_][A-Za-z0-9_]*$')
 
 class AvroFloat(float) :
 	pass
+
+
+class SerializableIntEnum(IntEnum) :
+
+	@classmethod
+	def __call__(cls, value: Union[str, int], *args: Any, **kwargs: Any) :
+		if isinstance(value, str) :
+			return cls[value]
+		IntEnum.__call__(cls, value, *args, **kwargs)
 
 
 AvroSchema = Union[str, Mapping[str, Union['AvroSchema', list[str], int]], list['AvroSchema']]
@@ -35,8 +44,14 @@ def _validate_avro_name(name: str) -> str :
 	return name
 
 
-def get_name(model: Type) -> str :
-	origin: Optional[Type] = getattr(model, '__origin__', None)  # for types from typing library
+def get_name(model: type | ForwardRef | str) -> str :
+	if isinstance(model, str) :
+		return model
+
+	if isinstance(model, ForwardRef) :
+		return model.__forward_arg__
+
+	origin: Optional[type] = getattr(model, '__origin__', None)  # for types from typing library
 	name: Optional[str] = None
 
 	if origin or (model.__class__ and model.__class__.__module__ == 'types') :
@@ -199,6 +214,29 @@ class AvroSchemaGenerator :
 		return schema
 
 
+	def _convert_int_enum(self: Self, model: Type[IntEnum]) -> AvroSchema :
+		name: str = get_name(model) 
+		_validate_avro_name(name)
+
+		values: Optional[list[str]] = list(model.__members__.keys())
+
+		if len(values) != len(set(model.__members__.values())) :
+			raise AvroException('enums must contain all unique values to be avro encoded')
+
+		schema: Dict[str, Union[str, List[str]]] = {
+			'type': 'enum',
+			'name': name,
+			'symbols': values,
+		}
+
+		self_namespace: Optional[str] = getattr(model, '__namespace__', None)
+		if self_namespace :
+			_validate_avro_namespace(self_namespace, self.namespace)
+			schema['namespace'] = self_namespace
+
+		return schema
+
+
 	def _convert_bytes(self: Self, model: Type[ConstrainedBytes]) -> AvroSchema :
 		if model.min_length == model.max_length and model.max_length :
 			schema: Dict[str, Union[str, int]] = {
@@ -249,6 +287,7 @@ class AvroSchemaGenerator :
 		BaseModel: _convert_object,
 		list: _convert_array,
 		Enum: _convert_enum,
+		IntEnum: _convert_int_enum,
 		ConstrainedBytes: _convert_bytes,
 		Dict: _convert_map,
 		dict: _convert_map,
@@ -280,7 +319,19 @@ class AvroSchemaGenerator :
 		},
 	}
 
-	def _get_type(self: Self, model: type) -> AvroSchema :
+	def _get_type(self: Self, model: type | ForwardRef | str) -> AvroSchema :
+		if isinstance(model, str) :
+			if model in self.refs :
+				return model
+
+			raise AvroException('received forward ref within model that is not constructed within the model')
+
+		if isinstance(model, ForwardRef) :
+			if model.__forward_arg__ in self.refs :
+				return model.__forward_arg__
+
+			raise AvroException('received forward ref within model that is not constructed within the model')
+
 		name: str = get_name(model)
 
 		if name in self.refs :
@@ -289,31 +340,34 @@ class AvroSchemaGenerator :
 		origin: Optional[Type] = getattr(model, '__origin__', None)
 
 		if origin and origin in self._conversions :
-			# none of these can be converted without funcs
-			schema: AvroSchema = self._conversions[origin](self, model) # type: ignore
-			if isinstance(schema, dict) and 'name' in schema :
-				assert isinstance(schema['name'], str)
-				self.refs.add(schema['name'])
-			return schema
+			c = self._conversions[origin]
+			if callable(c) :
+				if not name.lower().startswith('union') :
+					self.refs.add(name)
+				schema: AvroSchema = c(self, model)
+				return schema
+			return c
 
 		clss: Optional[Type] = getattr(model, '__class__', None)
 
 		if clss and clss in self._conversions :
-			# none of these can be converted without funcs
-			schema: AvroSchema = self._conversions[clss](self, model) # type: ignore
-			if isinstance(schema, dict) and 'name' in schema :
-				assert isinstance(schema['name'], str)
-				self.refs.add(schema['name'])
-			return schema
+			c = self._conversions[clss]
+			if callable(c) :
+				if not name.lower().startswith('union') :
+					self.refs.add(name)
+				schema: AvroSchema = c(self, model)
+				return schema
+			return c
 
 		for cls in getattr(model, '__mro__', []) :
 			if cls in self._conversions :
-				if callable(self._conversions[cls]) :
-					schema: AvroSchema = self._conversions[cls](self, model) # type: ignore
-					if 'name' in schema :
-						self.refs.add(schema['name']) # type: ignore
+				c = self._conversions[cls]
+				if callable(c) :
+					if not name.lower().startswith('union') :
+						self.refs.add(name)
+					schema: AvroSchema = c(self, model)
 					return schema
-				return self._conversions[cls] # type: ignore
+				return c
 
 		raise NotImplementedError(f'{model} missing from conversion map.')
 

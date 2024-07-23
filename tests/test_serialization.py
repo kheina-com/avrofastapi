@@ -1,6 +1,6 @@
 from datetime import date, datetime, time, timezone
 from decimal import Decimal
-from enum import Enum
+from enum import Enum, IntEnum
 from typing import Dict, List, Optional, Type, Union
 
 import pytest
@@ -21,9 +21,9 @@ class BasicModelBaseTypes(BaseModel) :
 
 
 class BasicEnum(Enum) :
-	test1: str = 'TEST1'
-	test2: str = 'TEST2'
-	test3: str = 'TEST3'
+	test1 = 'TEST1'
+	test2 = 'TEST2'
+	test3 = 'TEST3'
 
 
 class BasicModelAdvancedTypes(BaseModel) :
@@ -56,6 +56,17 @@ class NestedModelUnionRecords(BaseModel) :
 	A: Union[BasicModelAdvancedTypes, int]
 
 
+class BasicEnumUsesNames(IntEnum) :
+	test1 = 0
+	test2 = 1
+	test3 = 2
+
+
+class BasicModelIntEnums(BaseModel) :
+	A: BasicEnumUsesNames
+	B: BasicEnumUsesNames
+
+
 @pytest.mark.parametrize(
 	'input_model', [
 		BasicModelBaseTypes(A='string', B=1, C=1.1, D=b'abc', E=True),
@@ -63,8 +74,9 @@ class NestedModelUnionRecords(BaseModel) :
 		NestedModelBasicTypes(A=BasicModelBaseTypes(A='string', B=1, C=1.1, D=b'abc', E=True), B=2),
 		BasicModelTypingTypes(A=[1], B={ 'a': 2 }, C=None, D=3),
 		BasicModelTypingTypes(A=[1], B={ 'a': 2 }, C=None, D='3'),
-		BasicModelCustomTypes(A=123, B=34.5),
+		BasicModelCustomTypes(A=123, B=34.5),  # type: ignore
 		NestedModelUnionRecords(A=BasicModelAdvancedTypes(A=datetime.now(timezone.utc), B='abcde12345', C=Decimal('12.345'), D=BasicEnum.test2, E=date.today(), F=time(1, 2, 3, 4))),
+		# BasicModelIntEnums(A=BasicEnumUsesNames.test3, B=BasicEnumUsesNames.test1),
 	],
 )
 def test_serialize_ValidInput_ModelEncodedAndDecodedSuccessfully(input_model: BaseModel) :
@@ -74,6 +86,7 @@ def test_serialize_ValidInput_ModelEncodedAndDecodedSuccessfully(input_model: Ba
 	deserializer: AvroDeserializer = AvroDeserializer(type(input_model))
 
 	# act
+	print(AvroDeserializer(type(input_model), parse=False)(serializer(input_model)))
 	result = deserializer(serializer(input_model))
 
 	# assert
@@ -105,9 +118,9 @@ class BasicModelInvalidType6(BaseModel) :
 
 
 class BasicEnumInvalidType7(Enum) :
-	test1: str = 'TEST1'
-	test2: str = 'TEST2'
-	test3: str = 'TEST1'
+	test1 = 'TEST1'
+	test2 = 'TEST2'
+	test3 = 'TEST1'
 
 
 @pytest.mark.parametrize(

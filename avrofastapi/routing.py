@@ -82,7 +82,7 @@ class AvroJsonResponse(Response) :
 	# TODO: remove
 	__writer_cache__ = CalcDict(AvroSerializer)
 
-	def __init__(self: 'AvroJsonResponse', serializable_body: dict = None, model: BaseModel = None, *args: Tuple[Any], serializer: AvroSerializer = None, handshake: HandshakeResponse = None, error: bool = False, **kwargs: Dict[str, Any]) :
+	def __init__(self: 'AvroJsonResponse', serializable_body: dict = None, model: BaseModel = None, *args: Any, serializer: AvroSerializer = None, handshake: HandshakeResponse = None, error: bool = False, **kwargs: Any) :
 		super().__init__(None, *args, **kwargs)
 		self._serializable_body: Optional[dict] = serializable_body
 		self._model: Optional[BaseModel] = model
@@ -94,7 +94,7 @@ class AvroJsonResponse(Response) :
 	async def __call__(self: 'AvroJsonResponse', scope: Scope, receive: Receive, send: Send) :
 		request: Request = Request(scope, receive, send)
 
-		if 'avro/binary' in request.headers.get('accept') :
+		if 'avro/binary' in request.headers.get('accept', '') :
 
 			handshake: HandshakeResponse = request.scope['avro_handshake'] if 'avro_handshake' in request.scope else self._handshake
 			serializer: AvroSerializer = self._serializer or self.__writer_cache__[type(self._model)]
